@@ -14,6 +14,7 @@ def create_app():
     app.register_error_handler(404, handle_404)
     return app
 
+
 if __name__ == '__main__':
     app = create_app()
     app.run(debug=True, port=5050)

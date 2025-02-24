@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 import uuid
 
 
-@dataclass()
+@dataclass
 class Book:
     title: str = field(metadata={"required": True})
     author: str = field(metadata={"required": True})

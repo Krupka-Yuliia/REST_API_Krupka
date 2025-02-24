@@ -6,4 +6,3 @@ class BookSchema(Schema):
     author = fields.String(required=True, validate=validate.Length(min=1, max=100))
     year = fields.Integer(required=True, validate=validate.Range(min=1500, max=2025))
     publisher = fields.String(required=True, validate=validate.Length(min=1, max=100))
-
