@@ -43,9 +43,7 @@ def get_books():
 @main.route("/books/<book_id>", methods=["GET"])
 def get_book(book_id):
     book = get_book_by_id(book_id)
-    if not book:
-        abort(404, description=f"Book with id {book_id} not found")
-    return make_response(book)
+    return make_response(book) if book else abort(404, description=f"Book with id {book_id} not found")
 
 
 @main.route("/books/<book_id>", methods=["DELETE"])
