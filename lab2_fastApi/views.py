@@ -1,30 +1,11 @@
-import uuid
 from fastapi import APIRouter, HTTPException
-from typing import List, Dict
-
+from typing import List
 from schemas import Book
-
+from models import books
 main = APIRouter()
 
-books: List[Dict] = [
-    {
-        "id": str(uuid.uuid4()),
-        "title": "Cruel Prince",
-        "author": "Holly Black",
-        "publisher": "Vivat",
-        "year": 2020
-    },
-    {
-        "id": str(uuid.uuid4()),
-        "title": "The Catcher in the Rye",
-        "author": "J.D. Salinger",
-        "publisher": "Little, Brown and Company",
-        "year": 1951
-    }
-]
 
-
-async def get_book_by_id(book_id: str) -> Dict:
+async def get_book_by_id(book_id: str):
     for book in books:
         if book["id"] == book_id:
             return book
