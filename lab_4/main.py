@@ -1,7 +1,7 @@
 import os
 from flask import Flask
 from models import db
-from views import main
+from views import library
 
 
 def create_app():
@@ -12,7 +12,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
-    app.register_blueprint(main, url_prefix="/v1/api")
+    app.register_blueprint(library, url_prefix="/v1/api")
 
     return app
 
