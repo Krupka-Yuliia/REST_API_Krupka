@@ -51,11 +51,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 
 @auth.post("/refresh", response_model=Token)
-def refresh_token_endpoint(body: dict, db: Session = Depends(get_db)):
+def refresh_token(body: dict, db: Session = Depends(get_db)):
     token_str = body.get("refresh_token")
     if not token_str:
         raise create_http_exception(status.HTTP_422_UNPROCESSABLE_ENTITY, "refresh_token is required")
-
     try:
         payload = jwt.decode(token_str, REFRESH_SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
