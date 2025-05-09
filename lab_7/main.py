@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from views import main
-from auth_routes import router
+from auth_routes import auth
 from models import Base
 from database import engine
 app = FastAPI()
@@ -8,7 +8,7 @@ app = FastAPI()
 Base.metadata.create_all(bind=engine)
 
 app.include_router(main, prefix="/v1/api")
-app.include_router(router)
+app.include_router(auth)
 
 if __name__ == "__main__":
     import uvicorn

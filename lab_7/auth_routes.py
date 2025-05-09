@@ -1,97 +1,75 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 
-from auth import REFRESH_SECRET_KEY, ALGORITHM, create_access_token, create_refresh_token
+from auth import (
+    REFRESH_SECRET_KEY,
+    ALGORITHM,
+    create_access_token,
+    create_refresh_token,
+    create_http_exception,
+)
 from database import get_db
 from models import User
-from schemas import UserOut, Token, UserCreate, TokenPayload
+from schemas import UserDTO, Token, UserCreate
 
-router = APIRouter(prefix="/v1/api/auth", tags=["authentication"])
+auth = APIRouter(prefix="/v1/api/auth", tags=["authentication"])
+password_hasher = CryptContext(schemes=["bcrypt"])
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
-@router.post("/register", response_model=UserOut)
+@auth.post("/register", response_model=UserDTO)
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(User.user_name == user.user_name).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Username already exists")
+    if db.query(User).filter(User.user_name == user.user_name).first():
+        raise create_http_exception(status.HTTP_400_BAD_REQUEST, "Username already exists")
+    if db.query(User).filter(User.email == user.email).first():
+        raise create_http_exception(status.HTTP_400_BAD_REQUEST, "Email already exists")
 
-    existing_email = db.query(User).filter(User.email == user.email).first()
-    if existing_email:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    hashed_password = pwd_context.hash(user.password)
     new_user = User(
         user_name=user.user_name,
-        email=user.email,
-        hashed_password=hashed_password
+        email=str(user.email),
+        hashed_password=password_hasher.hash(user.password)
     )
-
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-
     return new_user
 
 
-@router.post("/token", response_model=Token)
+@auth.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.user_name == form_data.username).first()
-    if not user or not pwd_context.verify(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    access_token = create_access_token({"sub": user.user_name})
-    refresh_token = create_refresh_token({"sub": user.user_name})
+    if not user or not password_hasher.verify(form_data.password, user.hashed_password):
+        raise create_http_exception(status.HTTP_401_UNAUTHORIZED, "Incorrect username or password")
 
     return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
+        "access_token": create_access_token({"sub": user.user_name}),
+        "refresh_token": create_refresh_token({"sub": user.user_name}),
         "token_type": "bearer"
     }
 
 
-@router.post("/refresh", response_model=Token)
-def refresh_token(body: dict, db: Session = Depends(get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    refresh_token = body.get("refresh_token")
-    if not refresh_token:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="refresh_token is required"
-        )
+@auth.post("/refresh", response_model=Token)
+def refresh_token_endpoint(body: dict, db: Session = Depends(get_db)):
+    token_str = body.get("refresh_token")
+    if not token_str:
+        raise create_http_exception(status.HTTP_422_UNPROCESSABLE_ENTITY, "refresh_token is required")
 
     try:
-        payload = jwt.decode(refresh_token, REFRESH_SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token_str, REFRESH_SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
         if not username:
-            raise credentials_exception
-
-        token_data = TokenPayload(sub=username)
+            raise create_http_exception(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
     except JWTError:
-        raise credentials_exception
+        raise create_http_exception(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
 
     user = db.query(User).filter(User.user_name == username).first()
     if not user:
-        raise credentials_exception
-
-    new_access_token = create_access_token({"sub": username})
-    new_refresh_token = create_refresh_token({"sub": username})
+        raise create_http_exception(status.HTTP_401_UNAUTHORIZED, "User not found")
 
     return {
-        "access_token": new_access_token,
-        "refresh_token": new_refresh_token,
+        "access_token": create_access_token({"sub": username}),
+        "refresh_token": create_refresh_token({"sub": username}),
         "token_type": "bearer"
     }

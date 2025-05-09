@@ -25,7 +25,7 @@ class UserCreate(BaseModel):
     password: str
 
 
-class UserOut(BaseModel):
+class UserDTO(BaseModel):
     user_id: int
     user_name: str
     email: EmailStr

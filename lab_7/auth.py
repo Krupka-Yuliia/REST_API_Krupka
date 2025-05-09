@@ -1,56 +1,55 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
-from typing import Optional
 
 from database import get_db
 from models import User
-from schemas import TokenPayload
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="v1/api/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="v1/api/auth/login")
 
 SECRET_KEY = "secret"
 REFRESH_SECRET_KEY = "refresh_secret"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-REFRESH_TOKEN_EXPIRE_DAYS = 7
+ACCESS_TOKEN_EXPIRE_MINUTES = timedelta(minutes=30)
+REFRESH_TOKEN_EXPIRE_DAYS = timedelta(days=7)
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+def create_access_token(data: dict):
+    token_data = data.copy()
+    expire_time = datetime.now(UTC) + ACCESS_TOKEN_EXPIRE_MINUTES
+    token_data.update({"exp": expire_time})
+    return jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def create_refresh_token(data: dict):
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode = data.copy()
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, REFRESH_SECRET_KEY, algorithm=ALGORITHM)
+    token_data = data.copy()
+    expire_time = datetime.now(UTC) + REFRESH_TOKEN_EXPIRE_DAYS
+    token_data.update({"exp": expire_time})
+    return jwt.encode(token_data, REFRESH_SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+def create_http_exception(status_code: int, detail: str) -> HTTPException:
+    return HTTPException(
+        status_code=status_code,
+        detail={"error": detail, "status_code": status_code},
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_data = TokenPayload(sub=username, exp=payload.get("exp"))
+        username = payload.get("sub")
+        if not username or datetime.now(UTC) > datetime.fromtimestamp(payload.get("exp", 0), UTC):
+            raise create_http_exception(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")
+
+        user = db.query(User).filter(User.user_name == username).first()
+        if not user:
+            raise create_http_exception(status.HTTP_404_NOT_FOUND, "User not found")
+
+        return user
     except JWTError:
-        raise credentials_exception
-
-    user = db.query(User).filter(User.user_name == token_data.sub).first()
-    if user is None:
-        raise credentials_exception
-
-    return user
+        raise create_http_exception(status.HTTP_401_UNAUTHORIZED, "Could not validate credentials")
