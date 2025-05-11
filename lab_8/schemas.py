@@ -20,14 +20,14 @@ class Book(BookCreate):
 
 
 class UserCreate(BaseModel):
-    user_name: str
+    username: str
     email: EmailStr
     password: str
 
 
 class UserDTO(BaseModel):
-    user_id: int
-    user_name: str
+    id: int
+    username: str
     email: EmailStr
 
     class Config:

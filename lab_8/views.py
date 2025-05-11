@@ -32,7 +32,7 @@ async def get_books(
         db: Session = Depends(get_db),
         current_user: str = Depends(get_current_user)
 ):
-    await rate_limit(request, user_id=current_user.user_id)
+    await rate_limit(request, user_id=current_user.id)
     books = db.query(BookModel).all()
     return books
 
@@ -44,7 +44,7 @@ async def create_book(
         db: Session = Depends(get_db),
         current_user: str = Depends(get_current_user)
 ):
-    await rate_limit(request, user_id=current_user.user_id)
+    await rate_limit(request, user_id=current_user.id)
     new_book = BookModel(**book.model_dump())
     db.add(new_book)
     db.commit()
@@ -59,7 +59,7 @@ async def get_book(
         db: Session = Depends(get_db),
         current_user: str = Depends(get_current_user)
 ):
-    await rate_limit(request, user_id=current_user.user_id)
+    await rate_limit(request, user_id=current_user.id)
     return get_book_by_id(book_id, db)
 
 
@@ -70,7 +70,7 @@ async def delete_book(
         db: Session = Depends(get_db),
         current_user: str = Depends(get_current_user)
 ):
-    await rate_limit(request, user_id=current_user.user_id)
+    await rate_limit(request, user_id=current_user.id)
     book = get_book_by_id(book_id, db)
     db.delete(book)
     db.commit()
