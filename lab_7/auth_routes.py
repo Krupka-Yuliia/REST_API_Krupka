@@ -21,13 +21,13 @@ password_hasher = CryptContext(schemes=["bcrypt"])
 
 @auth.post("/register", response_model=UserDTO)
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.user_name == user.user_name).first():
+    if db.query(User).filter(User.username == user.username).first():
         raise create_http_exception(status.HTTP_400_BAD_REQUEST, "Username already exists")
     if db.query(User).filter(User.email == user.email).first():
         raise create_http_exception(status.HTTP_400_BAD_REQUEST, "Email already exists")
 
     new_user = User(
-        user_name=user.user_name,
+        username=user.username,
         email=str(user.email),
         hashed_password=password_hasher.hash(user.password)
     )
@@ -39,13 +39,13 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
 @auth.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.user_name == form_data.username).first()
+    user = db.query(User).filter(User.username == form_data.username).first()
     if not user or not password_hasher.verify(form_data.password, user.hashed_password):
         raise create_http_exception(status.HTTP_401_UNAUTHORIZED, "Incorrect username or password")
 
     return {
-        "access_token": create_access_token({"sub": user.user_name}),
-        "refresh_token": create_refresh_token({"sub": user.user_name}),
+        "access_token": create_access_token({"sub": user.username}),
+        "refresh_token": create_refresh_token({"sub": user.username}),
         "token_type": "bearer"
     }
 
@@ -63,7 +63,7 @@ def refresh_token(body: dict, db: Session = Depends(get_db)):
     except JWTError:
         raise create_http_exception(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
 
-    user = db.query(User).filter(User.user_name == username).first()
+    user = db.query(User).filter(User.username == username).first()
     if not user:
         raise create_http_exception(status.HTTP_401_UNAUTHORIZED, "User not found")
 

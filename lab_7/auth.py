@@ -46,7 +46,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         if not username or datetime.now(UTC) > datetime.fromtimestamp(payload.get("exp", 0), UTC):
             raise create_http_exception(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")
 
-        user = db.query(User).filter(User.user_name == username).first()
+        user = db.query(User).filter(User.username == username).first()
         if not user:
             raise create_http_exception(status.HTTP_404_NOT_FOUND, "User not found")
 
