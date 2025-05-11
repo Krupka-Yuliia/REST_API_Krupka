@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    container_name: app9
+    restart: always
+    ports:
+      - "5050:5050"
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://admin:PassWord@db:5432/books9
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14
+    container_name: lab9
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=PassWord
+      - POSTGRES_DB=books9
+
+  prism:
+    image: stoplight/prism:4
+    container_name: prism_mock
+    restart: always
+    ports:
+      - "4010:4010"
+    volumes:
+      - ./openapi.yaml:/openapi.yaml
+    command: mock -h 0.0.0.0 /openapi.yaml
+
+volumes:
+  postgres_data:

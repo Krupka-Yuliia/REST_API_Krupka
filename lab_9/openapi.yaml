@@ -1,0 +1,209 @@
+openapi: 3.0.0
+info:
+  title: Library API
+  description: API for managing a book library.
+  version: 1.0.0
+servers:
+  - url: /v1/api
+    description: Base path for API
+
+paths:
+  /:
+    get:
+      summary: Main page of API
+      responses:
+        "200":
+          description: Welcome message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Main paige of API, hi!"
+
+  /books:
+    get:
+      summary: Get a list of books
+      parameters:
+        - name: limit
+          in: query
+          description: Number of books to return
+          required: false
+          schema:
+            type: integer
+            default: 2
+        - name: cursor
+          in: query
+          description: Last book ID for pagination
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of books
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_books:
+                    type: integer
+                  books:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Book"
+                  next_cursor:
+                    type: integer
+              examples:
+                example:
+                  summary: Example book list response
+                  value:
+                    total_books: 3
+                    books:
+                      - id: 1
+                        title: "1984"
+                        author: "George Orwell"
+                        year: 1949
+                        publisher: "Vivat"
+                      - id: 2
+                        title: "Brave New World"
+                        author: "Aldous Huxley"
+                        year: 1932
+                        publisher: "Vivat"
+                      - id: 3
+                        title: "Fahrenheit 451"
+                        author: "Ray Bradbury"
+                        year: 1953
+                        publisher: "Vivat"
+                    next_cursor: 3
+
+    post:
+      summary: Create a new book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Book"
+            examples:
+              example:
+                summary: Example new book
+                value:
+                  title: "Animal Farm"
+                  author: "George Orwell"
+                  year: 1945
+                  publisher: "Vivat"
+      responses:
+        "201":
+          description: Book created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+              examples:
+                example:
+                  summary: Created book response
+                  value:
+                    id: 4
+                    title: "Animal Farm"
+                    author: "George Orwell"
+                    year: 1945
+                    publisher: "Vivat"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: object
+              examples:
+                errorExample:
+                  summary: Missing fields
+                  value:
+                    errors:
+                      title: [ "Missing data for required field." ]
+
+  /books/{book_id}:
+    parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get a book by ID
+      responses:
+        "200":
+          description: Book data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+              examples:
+                example:
+                  summary: Example book
+                  value:
+                    id: 1
+                    title: "1984"
+                    author: "George Orwell"
+                    year: 1949
+                    publisher: "Vivat"
+        "404":
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              examples:
+                notFound:
+                  summary: Book not found
+                  value:
+                    message: "Book with ID 999 not found."
+
+    delete:
+      summary: Delete a book by ID
+      responses:
+        "204":
+          description: Book deleted successfully
+        "404":
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              examples:
+                notFound:
+                  summary: Book not found
+                  value:
+                    message: "Book with ID 123 not found."
+
+components:
+  schemas:
+    Book:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "The Great Gatsby"
+        author:
+          type: string
+          example: "F. Scott Fitzgerald"
+        year:
+          type: integer
+          example: 1925
+        publisher:
+          type: string
+          example: "Vivat"
