@@ -1,0 +1,40 @@
+version: "3.10"
+
+services:
+  app:
+    build: .
+    container_name: app10
+    restart: always
+    ports:
+      - "5050:5050"
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://admin:PassWord@db:5432/books10
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14
+    container_name: lab10
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=PassWord
+      - POSTGRES_DB=books10
+
+  locust:
+    image: locustio/locust:2.20.2
+    container_name: locust
+    depends_on:
+      - app
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./locustfile.py:/locust/locustfile.py
+    command: locust -f /locust/locustfile.py --host http://app10:5050
+
+volumes:
+  postgres_data:
