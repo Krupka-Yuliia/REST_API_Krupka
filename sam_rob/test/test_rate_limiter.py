@@ -1,12 +1,12 @@
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from fastapi import HTTPException, Request
-from lab_8.ratelimiter import rate_limit
+from sam_rob.ratelimiter import rate_limit
 
 
 @pytest.fixture
 def mock_redis():
-    with patch("lab_8.ratelimiter.r", autospec=True) as mock_redis:
+    with patch("sam_rob.ratelimiter.r", autospec=True) as mock_redis:
         mock_redis.zremrangebyscore = AsyncMock()
         mock_redis.zcard = AsyncMock()
         mock_redis.zadd = AsyncMock()
